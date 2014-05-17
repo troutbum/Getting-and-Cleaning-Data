@@ -43,12 +43,14 @@ if (!file.exists("data/fixedwidth.for")) {
         dateDownloaded <- date()
 }
 
-fwData <- read.fwf(fileUrl)
-fwData <- read.fwf("./data/fixedwidth.for")
+data <- read.fwf("./data/fixedwidth.for", 
+                 widths=c(10,-5,4,4,-5,4,4,-5,4,4,-5,4,4),
+                 skip=4,
+                 col.names=c("Date","N1sst","N1ssta","N2sst","N2ssta","N3sst","N3ssta","N4sst","N4ssta"))
 
-y <- read.csv("./data/fixedwidth.for")
-z <- read.table("./data/fixedwidth.for")
-x <- read.fwf(
-        file=url("http://www.cpc.ncep.noaa.gov/data/indices/wksst8110.for"),
-        skip=4,
-        widths=c(12, 7,4, 9,4, 9,4, 9,4))
+View(data)
+sum(data[,4])
+# [1] 32426.7 <<-- ANSWER
+
+sum(data[,4])/1254  #reasonability check
+#[1] 25.85861
