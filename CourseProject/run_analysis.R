@@ -14,32 +14,48 @@ if (!file.exists("getdata-projectfiles-UCI HAR Dataset.zip")) {
         dateDownloaded <- date()
 }
 
+# read in column variable names
 features.txt <- read.table("./UCI HAR Dataset/features.txt")            # column labels for dataset
 variable.names <- as.character(features.txt[,2])                        # create char vector of column labels
 
-names <- gsub("mean()","PICKME",variable.names,fixed=TRUE)  # finds and replaces
-test <- grep("mean()",variable.names,fixed=TRUE)            # returns indices that contain pattern
+# create logical vector to subset columns
+contains.mean <- grepl("mean()",variable.names,fixed=TRUE)      # returns logical vector containing "mean()"
+contains.std <- grepl("std()",variable.names,fixed=TRUE)        # and "std()"                                 
+selected.cols <- contains.mean | contains.std                   # use this logical vector to subset columns
 
-test1 <- grepl("mean()",variable.names,fixed=TRUE)   # returns logical vector
-test2 <- grepl("std()",variable.names,fixed=TRUE)
-both <- test1 | test2
+# initial clean up of variable names
+names <- gsub("()","",variable.names,fixed=TRUE)            # finds and replaces bad chars
+names <- gsub("-","",names,fixed=TRUE)
+names <- gsub("mean",".Mean",names,fixed=TRUE)
+names <- gsub("std",".Std",names,fixed=TRUE)
 
-
+# read in measurement data and append column cleaned names
 measurements <- read.table("./UCI HAR Dataset/test/X_test.txt",
-                           col.names=as.character(variable.names))  # raw measurements (2947 rows)
-
-activity.number <- read.table("./UCI HAR Dataset/test/y_test.txt")  # activity (number) corresponding to each measurements
-subject.id <- read.table("./UCI HAR Dataset/test/subject_test.txt")  # subject ID (30 volunteers total)
-activity.labels <- read.table("./UCI HAR Dataset/activity_labels.txt") # description labels for the 6 activities
+                           col.names=as.character(names))  # raw measurements (2947 rows)
+measurements.subset <- measurements[,selected.cols == TRUE]
 
 
+# activity ID for each observation
+activity.id <- read.table("./UCI HAR Dataset/test/y_test.txt",   
+                              col.names=c("id"))
 
-# sub(pattern, replacement, x) gsub(pattern, replacement, x) Replace the first
-# occurrence of a pattern with sub or replace all occurrences with gsub. pattern
-# – A pattern to search for, which is assumed to be a regular expression. Use an
-# additional argument fixed=TRUE to look for a pattern without using regular
-# expressions. replacement – A character string to replace the occurrence (or
-# occurrences for gsub) of pattern. x – A character vector to search for
-# pattern. Each element will be searched separately.
+# description labels for the 6 possible activities
+activity.labels <- read.table("./UCI HAR Dataset/activity_labels.txt",
+                              col.names=c("id","activity")) 
+
+# subject ID for each observation (30 possible volunteers)
+subject.id <- read.table("./UCI HAR Dataset/test/subject_test.txt",
+                         col.names=c("subject.id"))  
+
+# join tables to get better activity descriptors
+library(plyr)
+activity = join(activity.id, activity.labels)
+
+# add subject.id and activity columns to dataset
+x <- cbind(activity$activity, measurements.subset )
+x <- cbind(subject.id, x)
+
+
+
 
 
