@@ -25,15 +25,15 @@
 # 
 # https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip
 # 
-# You should create one R script called run_analysis.R that does the following. 
-# Merges the training and the test sets to create one data set. Extracts only
-# the measurements on the mean and standard deviation for each measurement. Uses
-# descriptive activity names to name the activities in the data set 
-# Appropriately labels the data set with descriptive activity names. Creates a
-# second, independent tidy data set with the average of each variable for each
-# activity and each subject.
-
-
+# You should create one R script called run_analysis.R that does the following:
+#
+# - Merges the training and the test sets to create one data set. 
+# - Extracts only the measurements on the mean and standard deviation for each
+#   measurement.
+# - Uses descriptive activity names to name the activities in the data set.
+# - Appropriately labels the data set with descriptive activity names. 
+# - Creates a second, independent tidy data set with the average of each variable
+#   for each activity and each subject.
 
 
 # download file if it isn't already there
@@ -48,8 +48,9 @@ if (!file.exists("getdata-projectfiles-UCI HAR Dataset.zip")) {
 # unzip file
 
 # read in variable names
-filePath <- "./UCI HAR Dataset/"
-features.txt <- read.table(paste(filePath,"features.txt",sep=""))    # use for column names
+filePath <- "./UCI HAR Dataset/"                                # path set in zipped file
+features.txt <- read.table(paste(filePath,
+                                 "features.txt",sep=""))
 variable.names <- as.character(features.txt[,2])                # column labels for dataset
 
 # create logical vector to extract a subset of columns
@@ -107,11 +108,28 @@ y <- cbind(subject.id, x)
 results <- y[order(y$subject.id, y$activity),]
 row.names(results) <- NULL                                      # remove row.names system added column
 
+# convert subject.id to factor
+# results$subject.id <-factor(results$subject.id)                 # convert subject.id to factor
 
-results$subject.id <-factor(results$subject.id)                 # convert subject.id to factor
+# create "second tidy dataset" that calculates 
+# average of each variable by subject and activity
+#
+aggdata <-aggregate(results, by=list(results$subject.id,results$activity), FUN=mean)
+aggdata <- subset(aggdata,,-c(subject.id, activity))            
+names(aggdata)[1] <- "subject.id"                  
+names(aggdata)[2] <- "activity"  
+
+# alternative way to analyze by taking the means 
+# for each subject across all activities and
+# and for each activity across all subjects
+
+library(reshape)
+mresults <- melt(results, id=c("subject.id","activity"))
+subject.means <- cast(mresults, subject.id~variable, mean)
+activity.means <- cast(mresults, activity~variable, mean)
 
 
-
+# write output
 write.csv(results, "results.csv",row.names=FALSE)               # caution: row.names added by default
 verify.results <- read.csv("results.csv")
 identical(results,verify.results)
