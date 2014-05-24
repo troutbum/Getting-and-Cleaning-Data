@@ -6,19 +6,33 @@
 #
 # https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip
 # 
-# create a data subdirectory if it does not exist
-if (!file.exists("data")) {
-        dir.create("data")
-}
+
 # download file if it isn't already there
-if (!file.exists("data/rawdata.csv")) {
+if (!file.exists("getdata-projectfiles-UCI HAR Dataset.zip")) {
         fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
         download.file(fileUrl, destfile = "./data/rawdata.csv", method ="curl")
         dateDownloaded <- date()
 }
-# read in csv file and put into object called "acs"
-y_test <- read.csv("./UCI HAR Dataset/test/y_test.txt")
-X_test <- read.csv("./UCI HAR Dataset/test/X_test.txt")
+
+features.txt <- read.table("./UCI HAR Dataset/features.txt")            # column labels for dataset
+variable.names <- as.character(features.txt[,2])                        # create char vector of column labels
+
+names <- gsub("mean()","PICKME",variable.names,fixed=TRUE)  # finds and replaces
+test <- grep("mean()",variable.names,fixed=TRUE)            # returns indices that contain pattern
+
+test1 <- grepl("mean()",variable.names,fixed=TRUE)   # returns logical vector
+test2 <- grepl("std()",variable.names,fixed=TRUE)
+both <- test1 | test2
+
+
+measurements <- read.table("./UCI HAR Dataset/test/X_test.txt",
+                           col.names=as.character(variable.names))  # raw measurements (2947 rows)
+
+activity.number <- read.table("./UCI HAR Dataset/test/y_test.txt")  # activity (number) corresponding to each measurements
+subject.id <- read.table("./UCI HAR Dataset/test/subject_test.txt")  # subject ID (30 volunteers total)
+activity.labels <- read.table("./UCI HAR Dataset/activity_labels.txt") # description labels for the 6 activities
+
+
 
 # sub(pattern, replacement, x) gsub(pattern, replacement, x) Replace the first
 # occurrence of a pattern with sub or replace all occurrences with gsub. pattern
@@ -29,21 +43,3 @@ X_test <- read.csv("./UCI HAR Dataset/test/X_test.txt")
 # pattern. Each element will be searched separately.
 
 
-
-library(sqldf)
-answer1 <- sqldf("select pwgtp1 from acs where AGEP < 50")
-answer2 <- sqldf("select * from acs")
-answer3 <- sqldf("select * from acs where AGEP < 50 and pwgtp1")
-answer4 <- sqldf("select pwgtp1 from acs")
-str(answer1)  # answer1
-
-# Question 3 
-# Using the same data frame you created in the previous problem, what
-# is the equivalent function to unique(acs$AGEP)
-
-control <- unique(acs$AGEP)
-answerA <- sqldf("select distinct pwgtp1 from acs")
-answerB <- sqldf("select unique * from acs")
-answerC <- sqldf("select distinct AGEP from acs")
-answerD <- sqldf("select AGEP where unique from acs")
-# answerC (91 observations of 1 variable)
