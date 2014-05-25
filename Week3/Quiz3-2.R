@@ -31,3 +31,5 @@ if (!file.exists(xFile)) {
 
 library(jpeg)
 x <- readJPEG(xFile, native = TRUE)
+
+quantile(x, c(.30, .80))
