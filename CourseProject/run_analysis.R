@@ -1,4 +1,5 @@
 # Getting and Cleaning Data
+# May 2014
 # Course Project
 
 # The purpose of this project is to demonstrate your ability to collect, work
@@ -45,8 +46,6 @@ if (!file.exists("getdata-projectfiles-UCI HAR Dataset.zip")) {
         dateDownloaded <- date()
 }
 
-# unzip file
-
 # read in variable names
 filePath <- "./UCI HAR Dataset/"                                # path set in zipped file
 features.txt <- read.table(paste(filePath,
@@ -54,9 +53,10 @@ features.txt <- read.table(paste(filePath,
 variable.names <- as.character(features.txt[,2])                # column labels for dataset
 
 # create logical vector to extract a subset of columns
-contains.mean <- grepl("mean()",variable.names,fixed=TRUE)      # returns logical vector containing "mean()"
-contains.std <- grepl("std()",variable.names,fixed=TRUE)        # and "std()"                                 
-selected.cols <- contains.mean | contains.std                   
+contains.mean <- grepl("mean()",variable.names,fixed=TRUE)      # returns logical vector containing
+contains.std <- grepl("std()",variable.names,fixed=TRUE)        #  "mean()", "std()", meanFreq()  
+contains.meanfreq <- grepl("meanFreq()",variable.names,fixed=TRUE)         
+selected.cols <- contains.mean | contains.std | contains.meanfreq               
 
 # initial clean up of variable names
 names <- gsub("()","",variable.names,fixed=TRUE)                # finds and replaces bad characters
@@ -73,8 +73,15 @@ measurements.test <- read.table(paste(filePath,"test/X_test.txt",sep=""),
 
 # extract columns of interest using logical vector
 data.train <- measurements.train[,selected.cols == TRUE]
+datagroup <- rep(c("train"), nrow(data.train))              # add column to mark origin of data
+data.train <- cbind(datagroup, data.train )                 # from training data file
+
 data.test <- measurements.test[,selected.cols == TRUE]
+datagroup <- rep(c("test"), nrow(data.test))
+data.test <- cbind(datagroup, data.test )                   # from test data file
+
 data = rbind(data.train, data.test)                             # combine training and test rows
+
 
 # subject ID for each observation (30 possible volunteers)
 subject.id.train <- read.table(paste(filePath,"train/subject_train.txt",sep=""),
@@ -100,39 +107,59 @@ library(plyr)
 activity = join(activity.id, activity.labels)
 
 # combine dataset with Subject ID and Activity columns
-x <- cbind(activity$activity, data )
-names(x)[1] <- "activity"                                       # rename added column
-y <- cbind(subject.id, x)
+x <- cbind(activity$activity, activity$id, data)
+names(x)[1] <- "activity"                                       # rename added columns
+names(x)[2] <- "activity.id"
+xx <- cbind(subject.id, x)
 
 # sort dataset by (subject.id, activity)
-results <- y[order(y$subject.id, y$activity),]
+results <- xx[order(xx$subject.id, xx$activity),]
 row.names(results) <- NULL                                      # remove row.names system added column
 
 # convert subject.id to factor
-# results$subject.id <-factor(results$subject.id)                 # convert subject.id to factor
+# results$subject.id <-factor(results$subject.id)               # convert subject.id to factor
 
 # create "second tidy dataset" that calculates 
 # average of each variable by subject and activity
 #
-aggdata <-aggregate(results, by=list(results$subject.id,results$activity), FUN=mean)
-aggdata <- subset(aggdata,,-c(subject.id, activity))            
-names(aggdata)[1] <- "subject.id"                  
-names(aggdata)[2] <- "activity"  
+tidydata <-aggregate(results, by=list(results$subject.id,
+                                      results$activity), FUN=mean)
+tidydata <- subset(tidydata,,-c(subject.id, activity))          # remove extraneous columns
+names(tidydata)[1] <- "subject.id"                  
+names(tidydata)[2] <- "activity"  
 
-# alternative way to analyze by taking the means 
-# for each subject across all activities and
-# and for each activity across all subjects
+# cleanup names per assignment specification
+#
 
-library(reshape)
-mresults <- melt(results, id=c("subject.id","activity"))
-subject.means <- cast(mresults, subject.id~variable, mean)
-activity.means <- cast(mresults, activity~variable, mean)
+tidynames <- tolower(names(tidydata))                           # make names lowercase
+tidynames <- gsub("acc","accelerometer",tidynames,fixed=TRUE)
+tidynames <- gsub("gyro","gyroscope",tidynames,fixed=TRUE)
+tidynames <- gsub("mag","magnitude",tidynames,fixed=TRUE)
+tidynames <- gsub("std","standarddeviation",tidynames,fixed=TRUE)
+tidynames <- gsub("freq","frequency",tidynames,fixed=TRUE)
+tidynames <- gsub("tbody","timebody",tidynames,fixed=TRUE)
+tidynames <- gsub("tgravity","timegravity",tidynames,fixed=TRUE)
+tidynames <- gsub("fbody","fastfouriertransformbody",tidynames,fixed=TRUE)
+tidynames <- gsub(".","",tidynames,fixed=TRUE)
 
+# apply cleanup to tidydata
+names(tidydata) <- tidynames
 
 # write output
 write.csv(results, "results.csv",row.names=FALSE)               # caution: row.names added by default
 verify.results <- read.csv("results.csv")
 identical(results,verify.results)
+
+
+
+# alternative way to analyze by taking the means 
+# for each subject across all activities and
+# and for each activity across all subjects
+
+# library(reshape)
+# mresults <- melt(results, id=c("subject.id","activity"))
+# subject.means <- cast(mresults, subject.id~variable, mean)
+# activity.means <- cast(mresults, activity~variable, mean)
 
 
 ## Verify row binding of datasets
@@ -147,4 +174,3 @@ identical(results,verify.results)
 # row.names(t1) <- NULL
 # row.names(t2) <- NULL
 # identical(t1,t2)
-
