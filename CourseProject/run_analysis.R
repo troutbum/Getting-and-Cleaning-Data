@@ -73,12 +73,12 @@ measurements.test <- read.table(paste(filePath,"test/X_test.txt",sep=""),
 
 # extract columns of interest using logical vector
 data.train <- measurements.train[,selected.cols == TRUE]
-datagroup <- rep(c("train"), nrow(data.train))              # add column to mark origin of data
-data.train <- cbind(datagroup, data.train )                 # from training data file
+datasource <- rep(c("train"), nrow(data.train))                 # add column to mark source of data
+data.train <- cbind(datasource, data.train )                    # from training data file
 
 data.test <- measurements.test[,selected.cols == TRUE]
-datagroup <- rep(c("test"), nrow(data.test))
-data.test <- cbind(datagroup, data.test )                   # from test data file
+datasource <- rep(c("test"), nrow(data.test))
+data.test <- cbind(datasource, data.test )                      # from test data file
 
 data = rbind(data.train, data.test)                             # combine training and test rows
 
@@ -91,14 +91,14 @@ subject.id.test <- read.table(paste(filePath,"test/subject_test.txt",sep=""),
 subject.id = rbind(subject.id.train, subject.id.test)           
 
 
-# activity ID for each observation
+# activity ID for each observation (6 types)
 activity.id.train <- read.table(paste(filePath,"train/y_train.txt",sep=""),   
                               col.names=c("id"))
 activity.id.test <- read.table(paste(filePath,"test/y_test.txt",sep=""),   
                           col.names=c("id"))
 activity.id = rbind(activity.id.train, activity.id.test)        
 
-# description labels for the 6 possible activities
+# description labels for the 6 activities
 activity.labels <- read.table(paste(filePath,"activity_labels.txt",sep=""),
                               col.names=c("id","activity")) 
 
@@ -116,21 +116,19 @@ xx <- cbind(subject.id, x)
 results <- xx[order(xx$subject.id, xx$activity),]
 row.names(results) <- NULL                                      # remove row.names system added column
 
-# convert subject.id to factor
-# results$subject.id <-factor(results$subject.id)               # convert subject.id to factor
-
-# create "second tidy dataset" that calculates 
-# average of each variable by subject and activity
-#
-tidydata <-aggregate(results, by=list(results$subject.id,
+# use aggregate() to create "tidy dataset" that contains the average
+# of each variable by subject and activity
+tidydata <-aggregate(results, by=list(results$datasource, 
+                                      results$subject.id,
                                       results$activity), FUN=mean)
-tidydata <- subset(tidydata,,-c(subject.id, activity))          # remove extraneous columns
-names(tidydata)[1] <- "subject.id"                  
-names(tidydata)[2] <- "activity"  
+
+tidydata <- subset(tidydata,,-c(subject.id, activity, 
+                                datasource))                    # remove extraneous columns
+names(tidydata)[1] <- "datasource" 
+names(tidydata)[2] <- "subject.id"                  
+names(tidydata)[3] <- "activity"  
 
 # cleanup names per assignment specification
-#
-
 tidynames <- tolower(names(tidydata))                           # make names lowercase
 tidynames <- gsub("acc","accelerometer",tidynames,fixed=TRUE)
 tidynames <- gsub("gyro","gyroscope",tidynames,fixed=TRUE)
@@ -142,35 +140,9 @@ tidynames <- gsub("tgravity","timegravity",tidynames,fixed=TRUE)
 tidynames <- gsub("fbody","fastfouriertransformbody",tidynames,fixed=TRUE)
 tidynames <- gsub(".","",tidynames,fixed=TRUE)
 
-# apply cleanup to tidydata
+# apply cleaned names to tidydata
 names(tidydata) <- tidynames
 
 # write output
-write.csv(results, "results.csv",row.names=FALSE)               # caution: row.names added by default
-verify.results <- read.csv("results.csv")
-identical(results,verify.results)
+write.csv(tidydata, "tidydata.txt", row.names=FALSE)             # caution: row.names added by default
 
-
-
-# alternative way to analyze by taking the means 
-# for each subject across all activities and
-# and for each activity across all subjects
-
-# library(reshape)
-# mresults <- melt(results, id=c("subject.id","activity"))
-# subject.means <- cast(mresults, subject.id~variable, mean)
-# activity.means <- cast(mresults, activity~variable, mean)
-
-
-## Verify row binding of datasets
-#
-#identical(head(data.train),head(data))
-#
-#identical(tail(data.test,n=1, addrownums = FALSE),             # BUG? can't suppress added row.names
-#          tail(data,n=1,addrownums = FALSE))
-#
-# t1 <- tail(data.test, n=100, addrownums = FALSE)              # FIX BUG using row.names(t1) <- NULL
-# t2 <- tail(data, n=100, addrownums = FALSE)
-# row.names(t1) <- NULL
-# row.names(t2) <- NULL
-# identical(t1,t2)
