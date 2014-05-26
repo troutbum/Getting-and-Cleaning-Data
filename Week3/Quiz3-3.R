@@ -42,7 +42,11 @@ if (!file.exists(xFile)) {
         dateDownloaded <- date()
 }
 # read in dataset
-x <- read.csv(xFile)
+GDP <- read.csv(xFile, skip=4)       # BIG LESSON limit row reads with wonky data
+#GDP <- read.csv(xFile, skip=4, nrows=190)       # weird unstable behavior downstream
+
+t <-as.character(ED[,1])
+v <-as.character(GDP[,1])
 
 # download dataset
 fileName <- "getdata-data-EDSTATS_Country.csv"
@@ -53,6 +57,61 @@ if (!file.exists(xFile)) {
         dateDownloaded <- date()
 }
 # read in dataset
-y <- read.csv(xFile)
+ED <- read.csv(xFile)
+EDx <- subset(ED,, c(CountryCode, Long.Name, Income.Group))     # remove extraneous columns
 
 
+# cleanup GDP df
+names(GDP)[1] <- "CountryCode"
+names(GDP)[2] <- "Rank"                         
+GDPx <- subset(GDP,, c(CountryCode, Rank))      # remove extraneous columns
+                                       
+library(plyr)
+joint = join(GDPx, EDx, by="CountryCode")                                          # 190 matches, Spain is 13th
+print(head(joint[,1:2], n=20))
+
+# Question 4
+# What is the average GDP ranking for the "High income: OECD" and "High income: nonOECD" group?
+# 32.96667, 91.91304
+# 23.966667, 30.91304
+# 23, 45
+# 23, 30
+# 30, 37
+# 133.72973, 32.96667
+
+# use aggregate() to create dataset that contains the average
+table(joint$Income.Group)  # check numbers of each group
+
+OECD <- joint[ which(joint$Income.Group=='High income: OECD'),]
+row.names(OECD) <- NULL                                         # removes row.names system added column
+
+nonOECD <- joint[ which(joint$Income.Group=='High income: nonOECD'),]
+row.names(nonOECD) <- NULL  
+
+avgRankOECD <- mean(OECD[,2])
+avgRankOECD
+avgRanknonOECD <- mean(nonOECD[,2])
+avgRanknonOECD
+
+# Question 5
+# Cut the GDP ranking into 5 separate quantile groups. Make a table versus
+# Income.Group. How many countries are Lower middle income but among the 38
+# nations with highest GDP?
+# 1
+# 13
+# 5
+# 3
+
+quantile(joint$Rank,probs=c(0.1,0.3,0.5,0.7,0.9))
+table(joint$Income.Group)
+
+# create logical vectors
+income <- joint$Income.Group == "Lower middle income"
+summary(income)
+ranking <- joint$Rank <= 38
+summary(ranking)
+both = income & ranking
+summary(both)
+
+which(both)
+joint[both,]            # produces a list of countries meeting both conditions
