@@ -42,11 +42,8 @@ if (!file.exists(xFile)) {
         dateDownloaded <- date()
 }
 # read in dataset
-GDP <- read.csv(xFile, skip=4)       # BIG LESSON limit row reads with wonky data
-#GDP <- read.csv(xFile, skip=4, nrows=190)       # weird unstable behavior downstream
-
-t <-as.character(ED[,1])
-v <-as.character(GDP[,1])
+GDP <- read.csv(xFile, skip=4, nrows=190)     # BIG LESSON limit row reads with wonky data
+                                              # weird unstable behavior downstream
 
 # download dataset
 fileName <- "getdata-data-EDSTATS_Country.csv"
