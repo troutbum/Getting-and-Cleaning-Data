@@ -23,4 +23,13 @@ library(quantmod)
 amzn = getSymbols("AMZN",auto.assign=FALSE)
 sampleTimes = index(amzn) 
 
+# get observations for 2012
+x2012 <- amzn['2012']
+nrow(x2012)
 
+# get observations for Mondays in 2012
+mondays <- wday(x2012,label=TRUE) == "Mon"      # logical vector for finding Mondays
+summary(mondays)
+
+mondays2012 <- x2012[mondays]
+nrow(mondays2012)
